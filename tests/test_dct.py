@@ -1,0 +1,23 @@
+import numpy as np
+import pytest
+from ie0527.codecs.dct import (
+    comprimir_con_perdidas, descomprimir_con_perdidas, quant_table,
+)
+from ie0527.metrics import psnr
+
+
+def test_dct_dimensiones_y_calidad():
+    image = np.broadcast_to(np.linspace(0, 255, 23, dtype=np.uint8), (17, 23)).copy()
+    for q in (90, 50, 25, 10):
+        encoded = comprimir_con_perdidas(image, q)
+        recovered = descomprimir_con_perdidas(encoded, 23, 17, q)
+        assert recovered.shape == image.shape
+        assert recovered.dtype == np.uint8
+        assert len(encoded) > 0
+    assert psnr(image, descomprimir_con_perdidas(
+        comprimir_con_perdidas(image, 90), 23, 17, 90)) > 25
+
+
+def test_nivel_invalido():
+    with pytest.raises(ValueError):
+        quant_table(0)

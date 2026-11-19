@@ -1,11 +1,14 @@
-"""Despliegue en el monitor HDMI con pygame (opcional, seccion 10.4).
+"""Despliegue en el monitor HDMI escribiendo directo al framebuffer (seccion 10.4).
 
-En Raspberry Pi OS Lite no hay escritorio: pygame dibuja directo en la
-pantalla con el controlador kmsdrm. Instalar con: sudo apt install python3-pygame
+En Raspberry Pi OS Lite no hay escritorio ni aceleracion grafica para pygame,
+asi que se dibuja con Pillow y se copia la imagen a /dev/fb0. No necesita
+paquetes extra; el usuario debe pertenecer al grupo "video" (el usuario
+creado con Raspberry Pi Imager ya pertenece).
 """
-import os
+from pathlib import Path
 
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 LINEAS = [
     ("Modo", "modo"), ("Q", "calidad_Q"), ("Razon (enunciado)", "razon_compresion_enunciado"),
@@ -16,39 +19,61 @@ LINEAS = [
 ]
 
 
+def _leer(ruta: Path) -> str:
+    return ruta.read_text().strip()
+
+
 class Pantalla:
-    def __init__(self):
-        os.environ.setdefault("SDL_VIDEODRIVER", "kmsdrm")
-        import pygame
-        self.pg = pygame
-        pygame.display.init()
-        pygame.font.init()
-        info = pygame.display.Info()
-        self.sup = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-        pygame.mouse.set_visible(False)
-        self.fuente = pygame.font.SysFont(None, 34)
+    def __init__(self, dispositivo: str = "/dev/fb0", sysfs: str = "/sys/class/graphics/fb0"):
+        info = Path(sysfs)
+        self.ancho, self.alto = (int(v) for v in _leer(info / "virtual_size").split(","))
+        self.bpp = int(_leer(info / "bits_per_pixel"))
+        if self.bpp not in (16, 32):
+            raise RuntimeError(f"Framebuffer de {self.bpp} bits no soportado")
+        stride = info / "stride"
+        self.stride = int(_leer(stride)) if stride.exists() else self.ancho * self.bpp // 8
+        self._fb = open(dispositivo, "r+b")
+        tam = max(16, self.alto // 30)
+        try:
+            self.fuente = ImageFont.load_default(size=tam)
+        except TypeError:                # Pillow < 10.1
+            self.fuente = ImageFont.load_default()
+        self.interlineado = int(tam * 1.4)
         self.mensaje("Esperando imagen...")
 
+    def _volcar(self, lienzo: Image.Image) -> None:
+        rgb = np.asarray(lienzo.convert("RGB"), dtype=np.uint8)
+        if self.bpp == 32:               # XRGB8888 en memoria: B, G, R, X
+            pix = np.empty((self.alto, self.ancho, 4), dtype=np.uint8)
+            pix[..., 0], pix[..., 1], pix[..., 2], pix[..., 3] = rgb[..., 2], rgb[..., 1], rgb[..., 0], 255
+        else:                            # RGB565
+            r, g, b = (rgb[..., i].astype(np.uint16) for i in range(3))
+            pix = (((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)).astype("<u2")
+        filas = pix.reshape(self.alto, -1).view(np.uint8)
+        if filas.shape[1] < self.stride:   # relleno al final de cada fila
+            filas = np.pad(filas, ((0, 0), (0, self.stride - filas.shape[1])))
+        self._fb.seek(0)
+        self._fb.write(filas.tobytes())
+        self._fb.flush()
+
     def mensaje(self, texto: str) -> None:
-        self.sup.fill((0, 0, 0))
-        self.sup.blit(self.fuente.render(texto, True, (255, 255, 255)), (40, 40))
-        self.pg.display.flip()
+        lienzo = Image.new("RGB", (self.ancho, self.alto), "black")
+        ImageDraw.Draw(lienzo).text((40, 40), texto, fill="white", font=self.fuente)
+        self._volcar(lienzo)
 
     def mostrar(self, imagen: np.ndarray, datos: dict) -> None:
-        pg = self.pg
-        self.sup.fill((0, 0, 0))
-        rgb = np.repeat(imagen.T[:, :, None], 3, axis=2)       # pygame usa (ancho, alto)
-        img = pg.surfarray.make_surface(rgb)
-        ancho, alto = self.sup.get_size()
-        escala = max(1, min((ancho // 2) // imagen.shape[1], (alto - 80) // imagen.shape[0]))
-        img = pg.transform.scale(img, (imagen.shape[1] * escala, imagen.shape[0] * escala))
-        self.sup.blit(img, (40, 40))
-        x, y = 80 + img.get_width(), 40
+        lienzo = Image.new("RGB", (self.ancho, self.alto), "black")
+        alto_img, ancho_img = imagen.shape
+        escala = max(1, min((self.ancho * 3 // 5) // ancho_img, (self.alto - 80) // alto_img))
+        img = Image.fromarray(imagen, mode="L").resize(
+            (ancho_img * escala, alto_img * escala), Image.NEAREST)
+        lienzo.paste(img.convert("RGB"), (40, 40))
+        dibujo = ImageDraw.Draw(lienzo)
+        x, y = 80 + img.width, 40
         for etiqueta, clave in LINEAS:
             valor = datos.get(clave)
             if isinstance(valor, float):
                 valor = f"{valor:.3g}"
-            self.sup.blit(self.fuente.render(f"{etiqueta}: {valor}", True, (230, 230, 230)), (x, y))
-            y += 40
-        pg.display.flip()
-        pg.event.pump()
+            dibujo.text((x, y), f"{etiqueta}: {valor}", fill=(230, 230, 230), font=self.fuente)
+            y += self.interlineado
+        self._volcar(lienzo)

@@ -53,12 +53,18 @@ python apps/simular_enlace.py data/entrada/01_fotografica.bmp --modo rle --perdi
 
 ### En las Raspberry Pi
 
-Una vez por Raspberry (con el SPI habilitado y el venv creado con `--system-site-packages`):
+Una vez por Raspberry (con el SPI habilitado):
 
 ```bash
-git clone <este repositorio> && cd <carpeta>
-~/venv/bin/pip install -e ".[rpi]"
+sudo apt install -y python3-numpy python3-pil python3-gpiozero python3-lgpio python3-venv git
+python3 -m venv --system-site-packages ~/venv
+git clone https://github.com/stevonsa/Proyecto-Ingenier-a-de-Comunicaciones---IIS2026.git proyecto
+cd proyecto
+~/venv/bin/pip install -e ".[rpi,dev]"
+~/venv/bin/python -m pytest -q
 ```
+
+El venv **debe** crearse con `--system-site-packages`: gpiozero y su controlador `lgpio` vienen del sistema (apt). Si gpiozero muestra avisos *"Falling back from lgpio"* o falla al leer el botón, revisar que `~/venv/pyvenv.cfg` diga `include-system-site-packages = true` y quitar la copia de pip con `~/venv/bin/pip uninstall -y gpiozero`.
 
 Receptor (primero):
 
@@ -75,7 +81,7 @@ Transmisor:
 
 - `--gpio` usa botón, selector y LEDs; sin él, se transmite con Enter.
 - `--potencia low` (por defecto) para pruebas en la mesa a 1–2 m; `--potencia max` para la prueba de 30 m.
-- `--mostrar` en el receptor despliega la imagen y las métricas en el monitor HDMI (requiere `python3-pygame`).
+- `--mostrar` en el receptor despliega la imagen y las métricas en el monitor HDMI: dibuja directo en el framebuffer (`/dev/fb0`), sin paquetes extra.
 - El receptor guarda cada imagen y agrega una fila a `data/salida/metricas.csv`.
 
 ## Organización

@@ -11,6 +11,7 @@ dependencies = ["numpy>=1.21", "Pillow>=9.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+rpi = ["pyrf24>=0.6", "gpiozero>=2.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

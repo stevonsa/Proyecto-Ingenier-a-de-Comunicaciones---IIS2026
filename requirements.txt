@@ -1,0 +1,6 @@
+numpy>=1.21
+Pillow>=9.0
+# Solo en las Raspberry Pi (Linux ARM):
+pyrf24>=0.6; platform_machine == "aarch64" or platform_machine == "armv7l"
+gpiozero>=2.0; platform_machine == "aarch64" or platform_machine == "armv7l"
+# Opcional, para mostrar en el monitor HDMI: sudo apt install python3-pygame

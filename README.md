@@ -33,10 +33,50 @@ El sistema incorporará dos modalidades:
 
 ## Tecnologías
 
-- Lenguaje de programación: Python.
-- Plataforma de hardware: por definir.
-- Módulo de comunicación: por definir.
-- Algoritmos de compresión: por definir.
+- Lenguaje de programación: Python 3.
+- Plataforma de hardware: Raspberry Pi Zero 2 W con Raspberry Pi OS Lite 64 bits (Trixie).
+- Módulo de comunicación: nRF24L01 con antena externa por SPI (pyRF24), canal 80, 2 Mbps.
+- Algoritmos de compresión: RLE (sin pérdidas) y DCT 8×8 con factor de calidad Q (con pérdidas).
+
+## Uso
+
+### En la PC (sin radio)
+
+```bash
+pip install -e ".[dev]"
+pytest                                                  # todas las pruebas
+python apps/simular.py data/entrada/01_fotografica.bmp --modo dct --q 50
+python apps/simular_enlace.py data/entrada/01_fotografica.bmp --modo rle --perdida 0.1
+```
+
+`simular_enlace.py` corre el transmisor y el receptor completos con un canal simulado con pérdidas.
+
+### En las Raspberry Pi
+
+Una vez por Raspberry (con el SPI habilitado y el venv creado con `--system-site-packages`):
+
+```bash
+git clone <este repositorio> && cd <carpeta>
+~/venv/bin/pip install -e ".[rpi]"
+```
+
+Receptor (primero):
+
+```bash
+~/venv/bin/python apps/receptor.py --referencias data/entrada --gpio
+```
+
+Transmisor:
+
+```bash
+~/venv/bin/python apps/transmisor.py data/entrada/01_fotografica.bmp --modo rle
+~/venv/bin/python apps/transmisor.py data/entrada/01_fotografica.bmp --modo dct --q 50
+```
+
+- `--gpio` usa botón, selector y LEDs; sin él, se transmite con Enter.
+- `--potencia low` (por defecto) para pruebas en la mesa a 1–2 m; `--potencia max` para la prueba de 30 m.
+- `--mostrar` en el receptor despliega la imagen y las métricas en el monitor HDMI (requiere `python3-pygame`).
+- El receptor guarda cada imagen y agrega una fila a `data/salida/metricas.csv`.
 
 ## Organización
 

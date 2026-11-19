@@ -2,5 +2,6 @@ numpy>=1.21
 Pillow>=9.0
 # Solo en las Raspberry Pi (Linux ARM):
 pyrf24>=0.6; platform_machine == "aarch64" or platform_machine == "armv7l"
-gpiozero>=2.0; platform_machine == "aarch64" or platform_machine == "armv7l"
-# Opcional, para mostrar en el monitor HDMI: sudo apt install python3-pygame
+# gpiozero NO se instala con pip: en Raspberry Pi OS va por apt junto con su
+# controlador de pines: sudo apt install python3-gpiozero python3-lgpio
+# El monitor HDMI usa el framebuffer directamente: no requiere pygame

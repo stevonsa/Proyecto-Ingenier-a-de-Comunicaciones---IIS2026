@@ -30,7 +30,7 @@ def main() -> int:
                    help="carpeta con las imagenes originales (para PSNR y BER)")
     p.add_argument("--salida", type=Path, default=Path("data/salida"))
     p.add_argument("--gpio", action="store_true", help="usar LEDs")
-    p.add_argument("--mostrar", action="store_true", help="mostrar en el monitor HDMI (pygame)")
+    p.add_argument("--mostrar", action="store_true", help="mostrar en el monitor HDMI (framebuffer)")
     p.add_argument("--una", action="store_true", help="terminar despues de una imagen")
     args = p.parse_args()
 

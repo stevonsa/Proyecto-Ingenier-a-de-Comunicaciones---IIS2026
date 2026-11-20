@@ -84,6 +84,22 @@ Transmisor:
 - `--mostrar` en el receptor despliega la imagen y las métricas en el monitor HDMI: dibuja directo en el framebuffer (`/dev/fb0`), sin paquetes extra.
 - El receptor guarda cada imagen y agrega una fila a `data/salida/metricas.csv`.
 
+### Modo autónomo (prueba final)
+
+Arranca solo al encender, con WiFi y Bluetooth apagados, y se maneja con el botón y el selector:
+
+```bash
+sudo bash scripts/instalar_servicio.sh tx    # en la transmisora
+sudo bash scripts/instalar_servicio.sh rx    # en la receptora
+sudo reboot
+```
+
+- La TX envía las imágenes de la memoria USB (`/mnt/usb`), una por pulsación; si no hay memoria, usa `data/entrada`. Si un envío falla, la siguiente pulsación repite la misma imagen.
+- El selector decide el modo (abierto/arriba = sin pérdidas, cerrado/abajo = con pérdidas) y el LED 1 de la TX lo muestra en todo momento.
+- Para volver al modo de desarrollo (teclado y monitor): `sudo bash scripts/modo_desarrollo.sh`.
+- Pasos completos de la prueba: [`docs/prueba_30m.md`](docs/prueba_30m.md).
+
+
 ## Organización
 
 El repositorio se divide en módulos de transmisión, recepción, codificación de fuente, comunicación inalámbrica y evaluación de desempeño.

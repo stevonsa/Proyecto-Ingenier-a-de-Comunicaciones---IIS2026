@@ -7,10 +7,13 @@ Con boton, selector y LEDs reales:
   python apps/transmisor.py IMAGEN --gpio      (el selector GPIO27 decide el modo)
 Repetir en bucle (una transmision por cada pulsacion):
   python apps/transmisor.py IMAGEN --gpio --bucle
-Con una carpeta, cada pulsacion envia la siguiente imagen (orden alfabetico):
+Con una carpeta, cada pulsacion envia la siguiente imagen (orden alfabetico).
+Si una transmision falla, la siguiente pulsacion reintenta la MISMA imagen:
   python apps/transmisor.py /mnt/usb --gpio --bucle
+Modo autonomo (arranca solo al encender): scripts/instalar_servicio.sh tx
 
-LEDs: GPIO5 modo con perdidas, GPIO6 transmitiendo, GPIO13 fin correcto, GPIO19 error.
+LEDs: GPIO5 modo con perdidas (sigue al selector en todo momento), GPIO6 transmitiendo,
+      GPIO13 fin correcto, GPIO19 error (parpadea hasta la siguiente pulsacion).
 """
 import argparse
 import json
@@ -50,6 +53,7 @@ def main() -> int:
     print("Imagenes:", ", ".join(f.name for f in imagenes))
 
     panel = crear_panel(args.gpio)
+    panel.seguir_modo(LED_MODO)
     from ie0527.hardware.radio import Nrf24Radio, direcciones
     dir_tx, dir_rx = direcciones(args.grupo)
     radio = Nrf24Radio(dir_tx, dir_rx, potencia=args.potencia, tasa=args.tasa)
@@ -57,10 +61,9 @@ def main() -> int:
 
     codigo = 0
     sesion = random.randint(0, 255)      # luego se incrementa: dos seguidas nunca coinciden
-    indice = -1
+    indice, intento = 0, 1
     while True:
-        indice = (indice + 1) % len(imagenes)
-        print(f"Siguiente: {imagenes[indice].name}. Esperando boton...")
+        print(f"Siguiente: {imagenes[indice].name} (intento {intento}). Esperando boton...", flush=True)
         panel.esperar_boton()
         t_boton = time.perf_counter()
         panel.apagar_todo()
@@ -78,6 +81,7 @@ def main() -> int:
             panel.parpadear(LED_ERROR)
             print("ERROR:", exc, file=sys.stderr)
             codigo = 1
+            intento += 1                  # la proxima pulsacion repite esta imagen
         else:
             panel.led(LED_TX, False)
             panel.led(LED_FIN, True)
@@ -95,7 +99,8 @@ def main() -> int:
                 "rondas_fin": stats.rondas_fin,
                 "tasa_util_kbps": round(len(datos) * 8 / stats.segundos_transmision / 1000, 1),
             }
-            print(json.dumps(resumen, indent=2, ensure_ascii=False))
+            print(json.dumps(resumen, indent=2, ensure_ascii=False), flush=True)
+            indice, intento = (indice + 1) % len(imagenes), 1
         if not args.bucle:
             if args.gpio:
                 time.sleep(5)             # deja ver el LED de fin o de error

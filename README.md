@@ -110,14 +110,16 @@ La documentación académica se almacena en `docs/`.
 
 | Integrante | Responsabilidad |
 |---|---|
-| Integrante 1 | Liderazgo |
-| Integrante 2 | Supervisión técnica |
-| Integrante 3 | Supervisión de comunicación |
-| Otros integrantes | Desarrollo y documentación |
+| María Paula Suárez Zuñiga | C07776 | Líder de proyecto |
+| Francela Alvarado Ramírez | C30359 | Supervisión técnica |
+| Steven Gerardo Chacón Salazar | C12023 | Supervisión de comunicación |
+| Emanuel Venegas Méndez | C38393 | Desarrollo y documentación |
+| Rafael Calderón Baldioceda | A91134 | Desarrollo y documentación |
+| Damián Esteban Cabezas Guillén | C01414 | Desarrollo y documentación |
 
 ## Estado
 
-Proyecto en desarrollo.
+Proyecto en finalizado.
 
 ## Referencias
 

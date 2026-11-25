@@ -108,8 +108,8 @@ La documentación académica se almacena en `docs/`.
 
 ## Integrantes
 
-| Integrante | Responsabilidad |
-|---|---|
+| Integrante | Carné | Responsabilidad |
+|---|---|---|
 | María Paula Suárez Zuñiga | C07776 | Líder de proyecto |
 | Francela Alvarado Ramírez | C30359 | Supervisión técnica |
 | Steven Gerardo Chacón Salazar | C12023 | Supervisión de comunicación |
